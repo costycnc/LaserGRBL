@@ -554,6 +554,8 @@
     <Compile Include="CsPotrace\BezierToBiarc\Tuple.cs" />
     <Compile Include="CsPotrace\BezierToBiarc\Vector2.cs" />
     <Compile Include="CsPotrace\CsPotrace.cs" />
+    <!-- 🚀 REGISTRAZIONE FILE ESTERNO COSTYCNC PER FILO CALDO -->
+    <Compile Include="CsPotrace\CostyCNC_HotWire.cs" />
     <Compile Include="CsPotrace\CsPotraceExportGCODE.cs" />
     <Compile Include="CsPotrace\CsPotraceExport.cs" />
     <Compile Include="CustomButton.cs" />
