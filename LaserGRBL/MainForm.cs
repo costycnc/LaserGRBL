@@ -396,7 +396,7 @@ namespace LaserGRBL
 		private void RefreshFormTitle()
 		{
 			//string FormTitle = string.Format("LaserGRBL v{0}", Program.CurrentVersion.ToString(3));
-			string FormTitle = string.Format("LaserGRBL v{0} - CostyCNC Edition", Program.CurrentVersion.ToString(3));
+			string FormTitle = string.Format("LaserGRBL v{0} - CostyCNC", Program.CurrentVersion.ToString(3));
 
 
 			if (Core.Type != Firmware.Grbl)
