@@ -722,11 +722,15 @@ namespace CsPotrace
 			}
 
 			// =========================================================================
-			// 🚀 START COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
+			// 🚀 START COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM WITH LOGGER
 			// Spatial Path Sorting via Quadratic Distance Optimization
 			// =========================================================================
 			if (pathlist != null && pathlist.Count > 1)
 			{
+				// ⏱️ Start the stopwatch to measure performance
+				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+				int originalCount = pathlist.Count;
+
 				// Duplicate the unoptimized path stack into our target list
 				List<Path> costyx = new List<Path>(pathlist);
 				
@@ -760,8 +764,8 @@ namespace CsPotrace
 							if (currDiff < minDiff)
 							{
 								minDiff = currDiff;
-								targetPathIndex = m;   // Keep track of the nearest path cluster
-								targetPointIndex = n;  // Keep track of the best index to bridge execution
+								targetPathIndex = m;   
+								targetPointIndex = n;  
 							}
 						}
 					}
@@ -773,26 +777,25 @@ namespace CsPotrace
 					List<Point> originalPoints = selectedPath.pt;
 					List<Point> rotatedPoints = new List<Point>();
 
-					// Shift array positioning to match the calculated nearest anchor point
 					for (int k = targetPointIndex; k < originalPoints.Count; k++) rotatedPoints.Add(originalPoints[k]);
 					for (int k = 0; k < targetPointIndex; k++) rotatedPoints.Add(originalPoints[k]);
 
-					// Close the vector envelope by matching the first coordinate element at the tail end
 					if (rotatedPoints.Count > 0)
 					{
 						rotatedPoints.Add(rotatedPoints[0]);
 					}
 
-					// Overwrite target segment properties with our custom fluid timeline arrays
 					selectedPath.pt = rotatedPoints;
 					selectedPath.len = rotatedPoints.Count; 
 					
-					// Inject the sorted segment back into the compiler stack
 					pathlist.Add(selectedPath);
 
-					// Advance our moving anchor point to the tail end of the newly attached path
 					currentAnchor = rotatedPoints[rotatedPoints.Count - 1];
 				}
+
+				// ⏱️ Stop the stopwatch and output data directly to LaserGRBL UI Console
+				stopwatch.Stop();
+				Logger.Log($"[COSTYCNC OPTIMIZER] Reordered {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.");
 			}
 			// =========================================================================
 			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
