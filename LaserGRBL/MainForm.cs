@@ -29,7 +29,6 @@ namespace LaserGRBL
 		public MainForm()
 		{
 			InitializeComponent();
-this.Text = "LaserGRBL - CostyCNC Edition";
 
 			MnOrtur.Visible = false;
 			MMn.Renderer = new MMnRenderer();
