@@ -1,0 +1,29 @@
+name: Compilazione Automatica CostyCNC
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Scarica il codice sorgente
+      uses: actions/checkout@v4
+
+    - name: Configura l'ambiente .NET e MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Ripristina i pacchetti NuGet
+      run: nuget restore LaserGRBL.sln
+
+    - name: Compila il programma in modalità Release
+      run: msbuild LaserGRBL.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+    - name: Salva e rendi scaricabile il file EXE compilato
+      uses: actions/upload-artifact@v4
+      with:
+        name: LaserGRBL-CostyCNC
+        path: LaserGRBL/bin/Release/
