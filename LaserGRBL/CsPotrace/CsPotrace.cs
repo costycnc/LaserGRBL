@@ -819,7 +819,7 @@ namespace CsPotrace
 				try
 				{
 					// Salva tutto il blocco di testo e coordinate nel file costycnc_log.txt
-					System.IO.File.AppendAllText("costycnc_log.txt", sb.ToString());
+					System.IO.File.WriteAllText("costycnc_log.txt", sb.ToString());
 				}
 				catch
 				{
