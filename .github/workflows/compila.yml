@@ -22,8 +22,8 @@ jobs:
     - name: Ripristina i pacchetti NuGet
       run: nuget restore LaserGRBL.sln
 
-    - name: Compila solo l'eseguibile principale
-      run: msbuild LaserGRBL/LaserGRBL.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+    - name: Compila forzando l'aggiornamento a .NET 4.8
+      run: msbuild LaserGRBL/LaserGRBL.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:TargetFrameworkVersion=v4.8
 
     - name: Salva e rendi scaricabile il file EXE compilato
       uses: actions/upload-artifact@v4
