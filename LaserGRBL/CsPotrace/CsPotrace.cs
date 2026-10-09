@@ -793,9 +793,15 @@ namespace CsPotrace
 					currentAnchor = rotatedPoints[rotatedPoints.Count - 1];
 				}
 
-				// ⏱️ Stop the stopwatch and output data directly to LaserGRBL UI Console
-				stopwatch.Stop();
-				Logger.Log($"[COSTYCNC OPTIMIZER] Reordered {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.");
+// ⏱️ FERMA IL CRONOMETRO E MOSTRA UNA FINESTRA POP-UP CLICCABILE
+stopwatch.Stop();
+System.Windows.Forms.MessageBox.Show(
+    $"[CostyCNC Optimizer]\n\nOptimization successful!\nReordered {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.", 
+    "CostyCNC Debug Info", 
+    System.Windows.Forms.MessageBoxButtons.OK, 
+    System.Windows.Forms.MessageBoxIcon.Information
+);
+
 			}
 			// =========================================================================
 			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
