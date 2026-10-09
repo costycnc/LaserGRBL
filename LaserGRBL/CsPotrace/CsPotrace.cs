@@ -694,25 +694,24 @@ namespace CsPotrace
 			}
 			return path;
 		}
-		/// <summary>
+			/// <summary>
 		/// Decompose the given bitmap into paths. Returns a linked list of
 		/// Path objects with the fields len, pt, area filled
+		/// Optimized via Continuous Euclidean Nearest-Neighbor Tracking - CostyCNC Edition
 		/// </summary>
 		/// <param name="bm">A binary bitmap which holds the imageinformations.</param>
 		/// <param name="plistp">List of Path objects</param>
 		static Path bmToPathlist()
 		{
-
 			Bitmap_p bm1 = bm.copy();
 			Point currentPoint = new Point(0, 0);
 			Path path = new Path();
 
+			// 1. Core Extraction Stage: Scan bitmap rows sequentially for raw path bounds
 			bool weiter = findNext(bm1, currentPoint, ref currentPoint);
 			while (weiter)
 			{
-
 				path = findPath(bm1, currentPoint);
-
 				xorPath(bm1, path);
 
 				if (path.area > turdsize)
@@ -722,11 +721,87 @@ namespace CsPotrace
 				weiter = findNext(bm1, currentPoint, ref currentPoint);
 			}
 
+			// =========================================================================
+			// 🚀 START COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
+			// Spatial Path Sorting via Quadratic Distance Optimization
+			// =========================================================================
+			if (pathlist != null && pathlist.Count > 1)
+			{
+				// Duplicate the unoptimized path stack into our target list
+				List<Path> costyx = new List<Path>(pathlist);
+				
+				// Initialize the spatial anchor point at origin (0, 0) in pixel space
+				Point currentAnchor = new Point(0, 0);
 
+				// Reset the master pathlist to rebuild it in optimal chronological order
+				pathlist.Clear();
 
+				while (costyx.Count > 0)
+				{
+					double minDiff = double.MaxValue;
+					int targetPathIndex = 0;
+					int targetPointIndex = 0;
+
+					// Loop M: Scan through all remaining unlinked polygon tracks
+					for (int m = 0; m < costyx.Count; m++)
+					{
+						List<Point> points = costyx[m].pt; 
+						if (points == null || points.Count == 0) continue;
+
+						// Loop N: Scan internal nodes (Step by 10 points to accelerate cloud compilation)
+						for (int n = 0; n < points.Count; n += 10)
+						{
+							double x2 = currentAnchor.x - points[n].x;
+							double y2 = currentAnchor.y - points[n].y;
+
+							// The Core CostyCNC Formula: Quadratic Euclidean Distance Check
+							double currDiff = (x2 * x2) + (y2 * y2);
+
+							if (currDiff < minDiff)
+							{
+								minDiff = currDiff;
+								targetPathIndex = m;   // Keep track of the nearest path cluster
+								targetPointIndex = n;  // Keep track of the best index to bridge execution
+							}
+						}
+					}
+
+					// --- STRUCTURAL SPLICE & ARRAY ROTATION PHASE ---
+					Path selectedPath = costyx[targetPathIndex];
+					costyx.RemoveAt(targetPathIndex);
+
+					List<Point> originalPoints = selectedPath.pt;
+					List<Point> rotatedPoints = new List<Point>();
+
+					// Shift array positioning to match the calculated nearest anchor point
+					for (int k = targetPointIndex; k < originalPoints.Count; k++) rotatedPoints.Add(originalPoints[k]);
+					for (int k = 0; k < targetPointIndex; k++) rotatedPoints.Add(originalPoints[k]);
+
+					// Close the vector envelope by matching the first coordinate element at the tail end
+					if (rotatedPoints.Count > 0)
+					{
+						rotatedPoints.Add(rotatedPoints[0]);
+					}
+
+					// Overwrite target segment properties with our custom fluid timeline arrays
+					selectedPath.pt = rotatedPoints;
+					selectedPath.len = rotatedPoints.Count; 
+					
+					// Inject the sorted segment back into the compiler stack
+					pathlist.Add(selectedPath);
+
+					// Advance our moving anchor point to the tail end of the newly attached path
+					currentAnchor = rotatedPoints[rotatedPoints.Count - 1];
+				}
+			}
+			// =========================================================================
+			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
+			// =========================================================================
 
 			return path;
 		}
+
+		
 		static void xorPath(Bitmap_p bm1, Path path)
 		{
 			int y1 = path.pt[0].y,
