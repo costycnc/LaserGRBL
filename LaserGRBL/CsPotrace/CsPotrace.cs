@@ -721,106 +721,112 @@ namespace CsPotrace
 				weiter = findNext(bm1, currentPoint, ref currentPoint);
 			}
 
-			// =========================================================================
-			// 🚀 START COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM WITH LOGGER
-			// Spatial Path Sorting via Quadratic Distance Optimization
+				// =========================================================================
+			// 🚀 VERO ALGORITMO GEOMETRICO CONTINUO - COSTYCNC ORIGINAL ENGINE
 			// =========================================================================
 			if (pathlist != null && pathlist.Count > 1)
 			{
-				// ⏱️ Start the stopwatch to measure performance
 				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 				int originalCount = pathlist.Count;
 
-				// Duplicate the unoptimized path stack into our target list
+				// variabile 2: contiene inizialmente tutti i cammini rimasti disordinati
 				List<Path> costyx = new List<Path>(pathlist);
 				
-				// Initialize the spatial anchor point at origin (0, 0) in pixel space
-				Point currentAnchor = new Point(0, 0);
+				// variabile 1: conterrà un UNICO cammino finale con tutti i punti uniti. All'inizio contiene solo {0,0}
+				List<Point> pathx = new List<Point> { new Point(0, 0) };
 
-				// Reset the master pathlist to rebuild it in optimal chronological order
-				pathlist.Clear();
-
+				// Ciclo principale: continua finché ci sono cammini da svuotare nella variabile 2 (costyx)
 				while (costyx.Count > 0)
 				{
 					double minDiff = double.MaxValue;
-					int targetPathIndex = 0;
-					int targetPointIndex = 0;
+					int pos0 = 0; // Punto di rottura/separazione dentro variabile 1 (pathx)
+					int pat1 = 0; // Indice del cammino più vicino trovato nella variabile 2 (costyx)
+					int pos1 = 0; // Punto di aggancio per la rotazione dentro il nuovo cammino
 
-					// Loop M: Scan through all remaining unlinked polygon tracks
-					for (int m = 0; m < costyx.Count; m++)
+					// COMPARIAMO TUTTI I PUNTI DI VARIABILE 1 CON TUTTI I PUNTI DI TUTTI I CAMMINI IN VARIABILE 2
+					for (int i = 0; i < pathx.Count; i++)
 					{
-						List<Point> points = costyx[m].pt; 
-						if (points == null || points.Count == 0) continue;
-
-						// Loop N: Scan internal nodes (Step by 10 points to accelerate cloud compilation)
-						for (int n = 0; n < points.Count; n += 10)
+						for (int m = 0; m < costyx.Count; m++)
 						{
-							double x2 = currentAnchor.x - points[n].x;
-							double y2 = currentAnchor.y - points[n].y;
+							List<Point> currentSegmentPoints = costyx[m].pt;
+							if (currentSegmentPoints == null || currentSegmentPoints.Count == 0) continue;
 
-							// The Core CostyCNC Formula: Quadratic Euclidean Distance Check
-							double currDiff = (x2 * x2) + (y2 * y2);
-
-							if (currDiff < minDiff)
+							for (int n = 0; n < currentSegmentPoints.Count; n++)
 							{
-								minDiff = currDiff;
-								targetPathIndex = m;   
-								targetPointIndex = n;  
+								double x2 = pathx[i].x - currentSegmentPoints[n].x;
+								double y2 = pathx[i].y - currentSegmentPoints[n].y;
+
+								// Distanza euclidea quadratica CostyCNC
+								double currDiff = (x2 * x2) + (y2 * y2);
+
+								if (currDiff < minDiff)
+								{
+									minDiff = currDiff;
+									pos0 = i;   // Dove separare la variabile 1
+									pat1 = m;   // Quale cammino prendere dalla variabile 2
+									pos1 = n;   // Dove ruotare il nuovo cammino
+								}
 							}
 						}
 					}
 
-					// --- STRUCTURAL SPLICE & ARRAY ROTATION PHASE ---
-					Path selectedPath = costyx[targetPathIndex];
-					costyx.RemoveAt(targetPathIndex);
+					// ESTRAIAMO E CANCELLIAMO IL CAMMINO TROVATO DALLA VARIABILE 2
+					Path selectedPath = costyx[pat1];
+					costyx.RemoveAt(pat1);
+					List<Point> p = new List<Point>(selectedPath.pt);
 
-					List<Point> originalPoints = selectedPath.pt;
-					List<Point> rotatedPoints = new List<Point>();
+					// RUOTIAMO IL NUOVO CAMMINO NEL PUNTO PIÙ VICINO (pos1)
+					List<Point> rotatedP = new List<Point>();
+					for (int k = pos1; k < p.Count; k++) rotatedP.Add(p[k]);
+					for (int k = 0; k < pos1; k++) rotatedP.Add(p[k]);
+					p = rotatedP;
 
-					for (int k = targetPointIndex; k < originalPoints.Count; k++) rotatedPoints.Add(originalPoints[k]);
-					for (int k = 0; k < targetPointIndex; k++) rotatedPoints.Add(originalPoints[k]);
-
-					if (rotatedPoints.Count > 0)
+					// CHIUDIAMO IL NUOVO CAMMINO RIPORTANDO IL PUNTO DI PARTENZA ALLA FINE (p.push(p[0]))
+					if (p.Count > 0)
 					{
-						rotatedPoints.Add(rotatedPoints[0]);
+						p.Add(p[0]);
 					}
 
-					selectedPath.pt = rotatedPoints;
-					selectedPath.len = rotatedPoints.Count; 
+					// SEPARIAMO VARIABILE 1 E UNIAMO: Prima metà di path1 + Nuovo path2 ruotato + Seconda metà di path1
+					List<Point> newPathx = new List<Point>();
 					
-					pathlist.Add(selectedPath);
+					// Prima metà di path1 (da 0 fino a pos0)
+					for (int k = 0; k <= pos0; k++) newPathx.Add(pathx[k]);
+					
+					// Inseriamo tutto il nuovo cammino p
+					newPathx.AddRange(p);
+					
+					// Seconda metà di path1 (le coordinate rimaste da pos0+1 fino alla fine)
+					for (int k = pos0 + 1; k < pathx.Count; k++) newPathx.Add(pathx[k]);
 
-					currentAnchor = rotatedPoints[rotatedPoints.Count - 1];
+					// Salviamo il tutto dentro la variabile 1 (pathx)
+					pathx = newPathx;
 				}
 
+				// Alla fine del ciclo, pathx contiene un unico percorso gigante continuo.
+				// Lo salviamo dentro la struttura di LaserGRBL come un UNICO grande cammino ottimizzato.
+				pathlist.Clear();
+				Path finalCostyPath = new Path();
+				finalCostyPath.pt = pathx;
+				finalCostyPath.len = pathx.Count;
+				finalCostyPath.area = 99999; // Valore fittizio per evitare il filtro turdsize
+				pathlist.Add(finalCostyPath);
 
-								// ⏱️ FERMA IL CRONOMETRO
 				stopwatch.Stop();
 
-				// 1. Costruiamo la pagina HTML minimale pezzo per pezzo
+				// --- GENERAZIONE FILE HTML CON L'UNICO PERCORSO REALE ---
 				System.Text.StringBuilder html = new System.Text.StringBuilder();
-				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Live</title></head>");
+				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Continuous Path</title></head>");
 				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
-				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc;'>[CostyCNC] Optimized {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.</div>");
+				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Engine] Real Continuous Line Optimization: 1 Master Path built in {stopwatch.ElapsedMilliseconds} ms.</div>");
 				html.AppendLine("<canvas id='c' style='width:100vw; height:100vh; display:block;'></canvas>");
-				
-				// Inseriamo i dati geometrici come una matrice JavaScript pura
-				html.AppendLine("<script>");
-				html.AppendLine("const paths = [");
-				
-				for (int m = 0; m < pathlist.Count; m++)
+				html.AppendLine("<script>const pathx = [");
+				foreach (Point pnt in pathx)
 				{
-					html.Append("[");
-					foreach (Point pnt in pathlist[m].pt)
-					{
-						html.Append($"{{x:{pnt.x},y:{pnt.y}}},");
-					}
-					html.AppendLine("],");
+					html.Append($"{{x:{pnt.x},y:{pnt.y}}},");
 				}
-				
 				html.AppendLine("];");
 
-				// Logica di disegno e autoscala automatica minimale
 				html.AppendLine(@"
 				const canvas = document.getElementById('c');
 				const ctx = canvas.getContext('2d');
@@ -828,48 +834,34 @@ namespace CsPotrace
 				canvas.height = window.innerHeight;
 
 				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-				paths.forEach(p => p.forEach(pt => {
+				pathx.forEach(pt => {
 					if(pt.x < minX) minX = pt.x; if(pt.x > maxX) maxX = pt.x;
 					if(pt.y < minY) minY = pt.y; if(pt.y > maxY) maxY = pt.y;
-				}));
+				});
 
 				const gw = maxX - minX, gh = maxY - minY;
 				const scale = Math.min((canvas.width - 100) / (gw || 1), (canvas.height - 100) / (gh || 1));
 				const ox = (canvas.width / 2) - ((minX + gw / 2) * scale);
 				const oy = (canvas.height / 2) - ((minY + gh / 2) * scale);
 
-				paths.forEach((path, idx) => {
-					ctx.beginPath();
-					ctx.strokeStyle = ['#ff3333', '#33ff33', '#3333ff', '#ffff33'][idx % 4];
-					ctx.lineWidth = 2;
-					let sx = path[0].x * scale + ox;
-					let sy = path[0].y * scale + oy;
-					ctx.moveTo(sx, sy);
-					for(let j=1; j<path.length; j++) {
-						ctx.lineTo(path[j].x * scale + ox, path[j].y * scale + oy);
+				ctx.beginPath();
+				ctx.strokeStyle = '#33ff33'; // Un unico colore verde perché adesso è una linea continua unica!
+				ctx.lineWidth = 2.5;
+				
+				if(pathx.length > 0) {
+					ctx.moveTo(pathx[0].x * scale + ox, pathx[0].y * scale + oy);
+					for(let j=1; j<pathx.length; j++) {
+						ctx.lineTo(pathx[j].x * scale + ox, pathx[j].y * scale + oy);
 					}
-					ctx.stroke();
-					ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(sx, sy, 4, 0, 2*Math.PI); ctx.fill();
-				});
+				}
+				ctx.stroke();
 				</script></body></html>");
 
-				try
-				{
-					// Sovrascrive il file costycnc.html nella cartella del programma
-					System.IO.File.WriteAllText("costycnc.html", html.ToString());
-				}
-				catch
-				{
-					// Salta senza bloccare in caso di problemi di permessi
-				}
+				try { System.IO.File.WriteAllText("costycnc.html", html.ToString()); } catch {}
 			}
 			// =========================================================================
 			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
 			// =========================================================================
-
-			return path;
-		}
-
 
 		
 		static void xorPath(Bitmap_p bm1, Path path)
