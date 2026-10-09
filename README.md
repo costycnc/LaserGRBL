@@ -99,6 +99,94 @@ Thanks to:
 - Ozzybanan, for polish translation
 - onmaker, for traditional chinese translation [#1066](https://github.com/arkypita/LaserGRBL/pull/1066)
 - Nikolaos Ntekas, for Greek translation [#1234](https://github.com/arkypita/LaserGRBL/pull/1234)
+
+- 
+---
+
+## 🚀 Cloud-Based Automatic Compilation & Customization (Updated 2026 - CostyCNC Edition)
+
+If you are struggling to configure heavy local development environments (like Visual Studio) or constantly fighting missing NuGet packages and obsolete .NET Framework dependencies, you can compile this software **in less than two minutes directly in the cloud**, without installing anything on your computer.
+
+This CI/CD compilation procedure using GitHub Actions was tested, optimized, and documented by **Boboaca Costel (CostyCNC)** at the age of 60, proving that passion for electronics, CNC machines, and software development has no age limit!
+
+### ⚠️ Troubleshooting: What Didn't Work (Our Negative Experience)
+When trying to build LaserGRBL using standard GitHub Actions templates, you will likely hit two major roadblocks that cause the compilation to fail with `exit code 1`:
+1. **Missing Legacy Frameworks:** Standard GitHub runners do not pre-install older environments like .NET Framework 4.0. Trying to force installations via package managers (`choco install netfx-3.5`) will fail because those packages are deprecated or missing from repository sources.
+2. **Secondary Test Projects Block:** Running MSBuild on the global solution file (`LaserGRBL.sln`) fails because the cloud runner gets stuck compiling the secondary unit test projects (`LaserGRBL.Tests`). 
+
+**The Solution:** We bypassed these errors entirely by targeting *only* the main executable project (`LaserGRBL.csproj`) and forcing an automatic *retargeting* parameter (`/p:TargetFrameworkVersion=v4.8`) right inside the compilation command line.
+
+---
+
+### 🛠️ How to Compile via Browser:
+1. **Fork** this repository to your personal GitHub account.
+2. Go to **Settings** -> **Actions** -> **General** and select **"Allow all actions and reusable workflows"** to enable the cloud runners.
+3. In the **Code** tab, create a new file at the exact path: `.github/workflows/compila.yml`
+4. Paste the following optimized configuration inside it:
+
+```yaml
+name: Compilazione Automatica CostyCNC
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Download source code
+      uses: actions/checkout@v4
+
+    - name: Configure MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Configure NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore LaserGRBL.sln
+
+    - name: Compile main executable with .NET 4.8 override
+      run: msbuild LaserGRBL/LaserGRBL.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:TargetFrameworkVersion=v4.8
+
+    - name: Upload compiled EXE artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: LaserGRBL-CostyCNC
+        path: LaserGRBL/bin/Release/
+```
+
+5. Save by clicking **Commit changes**.
+6. Switch to the **Actions** tab at the top, wait for the circle to turn **green**, click on the completed build, and download your ready-to-use `.exe` file from the **Artifacts** section at the bottom of the page!
+
+---
+
+### 🏷️ Your First Custom Step: How to Change the Window Title
+Want to verify your custom factory works? Let's add your branding to the main window title bar (e.g., changing it to *LaserGRBL - CostyCNC Edition*).
+
+1. In your personal fork, navigate to: `LaserGRBL/MainForm.cs`
+2. Click the **pencil icon** to edit the file directly in the browser.
+3. Search (`Ctrl + F`) for the function `private void RefreshFormTitle()`.
+4. Modify the code block by commenting out the original string and adding your custom suffix:
+
+```csharp
+private void RefreshFormTitle()
+{
+    // Original line: string FormTitle = string.Format("LaserGRBL v{0}", Program.CurrentVersion.ToString(3));
+    string FormTitle = string.Format("LaserGRBL v{0} - CostyCNC Edition", Program.CurrentVersion.ToString(3));
+
+    if (Core.Type != Firmware.Grbl)
+        FormTitle = FormTitle + $" (for {Core.Type})";
+
+    if (Text != FormTitle) Text = FormTitle;
+}
+```
+
+5. Click **Commit changes**. The cloud will automatically trigger a new build, injecting your personalized title bar into the new `.exe` file!
+
 - Mrjavaci, for Turkish translation [#1293](https://github.com/arkypita/LaserGRBL/pull/1293)
 - Filippo Rivato for code contribution [#305](https://github.com/arkypita/LaserGRBL/pull/305) and again [#1251](https://github.com/arkypita/LaserGRBL/pull/1251)
 - Fabio Ferretti for code contribution [#592](https://github.com/arkypita/LaserGRBL/pull/592)
