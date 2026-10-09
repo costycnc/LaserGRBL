@@ -7,7 +7,7 @@ namespace CsPotrace
 	public partial class Potrace
 	{
 		// =========================================================================
-		// 🛠️ FILE ESTERNO COSTYCNC - RIMOZIONE SCALINI E ZIG-ZAG SU ASSI X,Y
+		// 🛠️ FILE ESTERNO COSTYCNC - VISUALIZZATORE CON EVIDENZIAZIONE PUNTI DI INGRESSO
 		// =========================================================================
 		static Path bmToPathlist_EsternaFiloCaldo()
 		{
@@ -30,16 +30,16 @@ namespace CsPotrace
 			}
 
 			// =========================================================================
-			// 🚀 COSTRUZIONE FILE HTML - OTTIMIZZAZIONE ASSIALE DELLE LINEE (NO ZIG-ZAG)
+			// 🚀 COSTRUZIONE FILE HTML - MOSTRA I CONTORNI E I PUNTI DI INGRESSO
 			// =========================================================================
 			if (pathlist != null && pathlist.Count > 0)
 			{
 				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
 				System.Text.StringBuilder html = new System.Text.StringBuilder();
-				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Straight X,Y Lines</title></head>");
+				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Path Entries View</title></head>");
 				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
-				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Straight X/Y Line Filter active. Zig-zag stairs removed!</div>");
+				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Potrace generated {pathlist.Count} paths. Entry points highlighted in RED.</div>");
 				html.AppendLine("<canvas id='c' style='width:100vw; height:100vh; display:block;'></canvas>");
 				
 				// Esportiamo i contorni nativi in una struttura ad array di array per JavaScript
@@ -58,7 +58,7 @@ namespace CsPotrace
 				}
 				html.AppendLine("];");
 
-				// Script JS per calcolare i confini, applicare il filtro ortogonale X/Y e disegnare
+				// Script JS per calcolare i confini, scalare e disegnare i contorni + cerchietti di ingresso
 				html.AppendLine(@"
 				const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d');
 				canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -78,52 +78,26 @@ namespace CsPotrace
 
 				originalContours.forEach(contour => {
 					if(contour.length > 0) {
-						
-						// =========================================================================
-						// ⚡ FILTRO COSTYCNC: COMPRIME GLI SCALINI ALLINEATI SU X E Y
-						// =========================================================================
-						const cleanContour = [];
-						cleanContour.push(contour[0]);
-
-						for (let i = 1; i < contour.length; i++) {
-							let current = contour[i];
-							
-							if (cleanContour.length >= 2) {
-								let prev = cleanContour[cleanContour.length - 1];
-								let beforePrev = cleanContour[cleanContour.length - 2];
-
-								// Se stiamo andando dritti su X (stessa Y) o dritti su Y (stessa X)
-								// sovrascriviamo il punto intermedio estendendo la linea retta
-								if ((beforePrev.x === prev.x && prev.x === current.x) || 
-									(beforePrev.y === prev.y && prev.y === current.y)) {
-									cleanContour[cleanContour.length - 1] = current; // Sostituisce e raddrizza
-									continue;
-								}
-							}
-							cleanContour.push(current);
-						}
-						// =========================================================================
-
-						// 1. Disegna il contorno raddrizzato (Verde)
+						// 1. Disegna il contorno geometrico (Verde)
 						ctx.lineWidth = 2.0;
 						ctx.strokeStyle = '#33ff33';
 						ctx.beginPath();
-						ctx.moveTo(cleanContour[0].x * scale + ox, cleanContour[0].y * scale + oy);
-						for(let j=1; j<cleanContour.length; j++) { 
-							ctx.lineTo(cleanContour[j].x * scale + ox, cleanContour[j].y * scale + oy); 
+						ctx.moveTo(contour[0].x * scale + ox, contour[0].y * scale + oy);
+						for(let j=1; j<contour.length; j++) { 
+							ctx.lineTo(contour[j].x * scale + ox, contour[j].y * scale + oy); 
 						}
 						ctx.closePath();
 						ctx.stroke();
 
 						// 2. Disegna un cerchio piccolo sul punto di ingresso (Rosso)
-						const entryX = cleanContour[0].x * scale + ox;
-						const entryY = cleanContour[0].y * scale + oy;
+						const entryX = contour[0].x * scale + ox;
+						const entryY = contour[0].y * scale + oy;
 						
 						ctx.beginPath();
-						ctx.arc(entryX, entryY, 4, 0, 2 * Math.PI);
+						ctx.arc(entryX, entryY, 4, 0, 2 * Math.PI); // Raggio del cerchio = 4 pixel
 						ctx.fillStyle = '#ff3333';
 						ctx.fill();
-						ctx.strokeStyle = '#ffffff';
+						ctx.strokeStyle = '#ffffff'; // Bordino bianco per renderlo visibile anche su linee spesse
 						ctx.lineWidth = 1;
 						ctx.stroke();
 					}
