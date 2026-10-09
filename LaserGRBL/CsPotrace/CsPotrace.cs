@@ -858,6 +858,14 @@ namespace CsPotrace
 		}
 		*/
 
+		// =========================================================================
+		// 🎯 COSTYCNC - PONTE DI ACCESSO RAPIDO
+		// =========================================================================
+		static Path bmToPathlist()
+		{
+			// Questo è l'unico comando attivo. Richiama direttamente il tuo file esterno!
+			return bmToPathlist_EsternaFiloCaldo();
+		}
 
 
 				/// <summary>
@@ -866,7 +874,7 @@ namespace CsPotrace
 		/// </summary>
 		/// <param name="bm">A binary bitmap which holds the imageinformations.</param>
 		/// <param name="plistp">List of Path objects</param>
-		static Path bmToPathlist()
+		static Path bmToPathlist_Originale()
 		{
 
 			Bitmap_p bm1 = bm.copy();
