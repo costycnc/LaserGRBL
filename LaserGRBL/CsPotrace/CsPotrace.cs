@@ -789,7 +789,7 @@ namespace CsPotrace
 					for (int k = 0; k < pos1; k++) rotatedP.Add(p[k]);
 					p = rotatedP;
 
-					// CHIUSURA CORRETTA: p.push(p[0]) - Risolve l'errore CS1503!
+					// CHIUSURA CORRETTA: p.push(p[0]) di CostyCNC
 					if (p.Count > 0)
 					{
 						p.Add(p[0]); 
