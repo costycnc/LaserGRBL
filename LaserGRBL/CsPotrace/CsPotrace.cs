@@ -720,16 +720,15 @@ namespace CsPotrace
 				}
 				weiter = findNext(bm1, currentPoint, ref currentPoint);
 			}
-
 			// =========================================================================
-			// 🚀 VERO ALGORITMO GEOMETRICO CONTINUO - TRADUZIONE ESATTA EXTRACT.JS
+			// 🚀 VERO ALGORITMO GEOMETRICO CONTINUO - VERSIONE CORRETTA SENZA LOOP
 			// =========================================================================
 			if (pathlist != null && pathlist.Count > 1)
 			{
 				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 				int originalCount = pathlist.Count;
 
-				// VARIABILE 2 (costyx): Converte la pathlist in una lista di liste di punti grezzi
+				// VARIABILE 2 (costyx): Lista di liste di punti grezzi
 				List<List<Point>> costyx = new List<List<Point>>();
 				foreach (Path oldP in pathlist)
 				{
@@ -739,10 +738,10 @@ namespace CsPotrace
 					}
 				}
 				
-				// VARIABILE 1 (pathx): All'inizio contiene solo il punto di partenza (0,0)
+				// VARIABILE 1 (pathx): Inizia con il punto di partenza (0,0)
 				List<Point> pathx = new List<Point> { new Point(0, 0) };
 
-				// CICLO WHILE PRINCIPALE (while(costyx.length))
+				// CICLO PRINCIPALE
 				while (costyx.Count > 0)
 				{
 					double minDiff = double.MaxValue;
@@ -750,7 +749,7 @@ namespace CsPotrace
 					int pat1 = 0;
 					int pos1 = 0;
 
-					// I TRE CICLI FOR IDENTICI AL TUO SCRIPT (con incremento di 10)
+					// I tre cicli for incrociati con incremento di 10 (Esattamente come extract.js)
 					for (int i = 0; i < pathx.Count; i += 10)
 					{
 						for (int m = 0; m < costyx.Count; m++)
@@ -778,38 +777,36 @@ namespace CsPotrace
 						}
 					}
 
-					// p = costyx.splice(pat1,1)[0]; (Estraiamo il cammino più vicino)
+					// Estraiamo il cammino più vicino
 					List<Point> p = costyx[pat1];
 					costyx.RemoveAt(pat1);
 
-					// p = p.splice(pos1).concat(p); (Rotazione esatta del cammino nel punto pos1)
+					// Rotazione del cammino nel punto pos1
 					List<Point> rotatedP = new List<Point>();
 					for (int k = pos1; k < p.Count; k++) rotatedP.Add(p[k]);
 					for (int k = 0; k < pos1; k++) rotatedP.Add(p[k]);
 					p = rotatedP;
 
-					// p.push(p[0]); (Chiudiamo il tracciato portando il primo punto alla fine)
+					// CORREZIONE CHIUSURA ANELLO: p.push(p[0]) di JavaScript
 					if (p.Count > 0)
 					{
-						p.Add(p[0]);
+						p.Add(p[0]); // Prende solo il primo punto, non tutta la lista!
 					}
 
-					// pathx = pathx.slice(0,pos0).concat(p, pathx.slice(pos0-1)); (Unione continua)
+					// UNIONE CONTINUA DELLE FETTE (Sostituisce lo slice/concat)
 					List<Point> newPathx = new List<Point>();
 					
-					// Fetta sinistra: da 0 a pos0 (incluso)
+					// Fetta sinistra di path1 (da 0 a pos0)
 					for (int k = 0; k <= pos0 && k < pathx.Count; k++) 
 					{
 						newPathx.Add(pathx[k]);
 					}
 					
-					// Inseriamo il blocco p ruotato e unito
+					// Inseriamo il blocco p ruotato
 					newPathx.AddRange(p);
 					
-					// Fetta destra: da pos0 fino alla fine di pathx (corrisponde a pos0-1 del tuo JS)
-					int startRight = pos0; 
-					if (startRight < 0) startRight = 0;
-					for (int k = startRight; k < pathx.Count; k++) 
+					// Fetta destra di path1 (da pos0+1 fino alla fine)
+					for (int k = pos0 + 1; k < pathx.Count; k++) 
 					{
 						newPathx.Add(pathx[k]);
 					}
@@ -817,17 +814,17 @@ namespace CsPotrace
 					pathx = newPathx;
 				}
 
-				// Svuotiamo la vecchia struttura e le diamo in pasto l'UNICO grande cammino continuo generato
+				// Riassegniamo l'unico percorso continuo strutturato alla pathlist di LaserGRBL
 				pathlist.Clear();
 				Path finalCostyPath = new Path();
 				finalCostyPath.pt = pathx;
 				finalCostyPath.len = pathx.Count;
-				finalCostyPath.area = 99999; // Valore alto per bypassare il filtro turdsize
+				finalCostyPath.area = 99999; 
 				pathlist.Add(finalCostyPath);
 
 				stopwatch.Stop();
 
-				// --- GENERAZIONE FILE HTML CON IL TRACCIATO CONTINUO REALE ---
+				// --- GENERAZIONE FILE HTML ---
 				System.Text.StringBuilder html = new System.Text.StringBuilder();
 				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Master Path</title></head>");
 				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
@@ -858,7 +855,7 @@ namespace CsPotrace
 				const oy = (canvas.height / 2) - ((minY + gh / 2) * scale);
 
 				ctx.beginPath();
-				ctx.strokeStyle = '#33ff33'; // Linea verde unica, sintomo di continuità totale!
+				ctx.strokeStyle = '#33ff33'; 
 				ctx.lineWidth = 2.5;
 				
 				if(pathLines.length > 0) {
@@ -875,8 +872,9 @@ namespace CsPotrace
 			// =========================================================================
 			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
 			// =========================================================================
-			return path; // <- QUESTO DEVE ESSERCI! È il ritorno nativo della funzione originale
-		} // <- QUESTA CHIUDE IL METODO bmToPathlist()! Senza questa dà errore CS1513
+
+			return path;
+		}
 
 		
 		static void xorPath(Bitmap_p bm1, Path path)
