@@ -794,36 +794,73 @@ namespace CsPotrace
 				}
 
 
-				// ⏱️ FERMA IL CRONOMETRO
+								// ⏱️ FERMA IL CRONOMETRO
 				stopwatch.Stop();
 
-				// 1. Prepariamo il testo iniziale con Data, Ora, percorsi e millisecondi
-				System.Text.StringBuilder sb = new System.Text.StringBuilder();
-				sb.AppendLine($"{DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")} - [CostyCNC] Optimized {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.");
-				sb.AppendLine("--- COORDINATE DEI PERCORSI OTTIMIZZATI ---");
-
-				// 2. Cicliamo la pathlist per estrarre tutti i punti geometrici reali X e Y
+				// 1. Costruiamo la pagina HTML minimale pezzo per pezzo
+				System.Text.StringBuilder html = new System.Text.StringBuilder();
+				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Live</title></head>");
+				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
+				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc;'>[CostyCNC] Optimized {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.</div>");
+				html.AppendLine("<canvas id='c' style='width:100vw; height:100vh; display:block;'></canvas>");
+				
+				// Inseriamo i dati geometrici come una matrice JavaScript pura
+				html.AppendLine("<script>");
+				html.AppendLine("const paths = [");
+				
 				for (int m = 0; m < pathlist.Count; m++)
 				{
-					sb.AppendLine($"Cammino n. {m + 1} (Totale punti: {pathlist[m].pt.Count})");
-					
-					// Estraiamo le coordinate pixel di ogni singolo punto del cammino
+					html.Append("[");
 					foreach (Point pnt in pathlist[m].pt)
 					{
-						sb.AppendLine($"X: {pnt.x}, Y: {pnt.y}");
+						html.Append($"{{x:{pnt.x},y:{pnt.y}}},");
 					}
-					sb.AppendLine("---------------------------------------");
+					html.AppendLine("],");
 				}
-				sb.AppendLine("\r\n"); // Riga vuota di separazione per il prossimo lavoro
+				
+				html.AppendLine("];");
+
+				// Logica di disegno e autoscala automatica minimale
+				html.AppendLine(@"
+				const canvas = document.getElementById('c');
+				const ctx = canvas.getContext('2d');
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+
+				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+				paths.forEach(p => p.forEach(pt => {
+					if(pt.x < minX) minX = pt.x; if(pt.x > maxX) maxX = pt.x;
+					if(pt.y < minY) minY = pt.y; if(pt.y > maxY) maxY = pt.y;
+				}));
+
+				const gw = maxX - minX, gh = maxY - minY;
+				const scale = Math.min((canvas.width - 100) / (gw || 1), (canvas.height - 100) / (gh || 1));
+				const ox = (canvas.width / 2) - ((minX + gw / 2) * scale);
+				const oy = (canvas.height / 2) - ((minY + gh / 2) * scale);
+
+				paths.forEach((path, idx) => {
+					ctx.beginPath();
+					ctx.strokeStyle = ['#ff3333', '#33ff33', '#3333ff', '#ffff33'][idx % 4];
+					ctx.lineWidth = 2;
+					let sx = path[0].x * scale + ox;
+					let sy = path[0].y * scale + oy;
+					ctx.moveTo(sx, sy);
+					for(let j=1; j<path.length; j++) {
+						ctx.lineTo(path[j].x * scale + ox, path[j].y * scale + oy);
+					}
+					ctx.stroke();
+					ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(sx, sy, 4, 0, 2*Math.PI); ctx.fill();
+				});
+				</script></body></html>");
 
 				try
 				{
-					// Salva tutto il blocco di testo e coordinate nel file costycnc_log.txt
-					System.IO.File.WriteAllText("costycnc_log.txt", sb.ToString());
+					// Sovrascrive il file costycnc.html nella cartella del programma
+					System.IO.File.WriteAllText("costycnc.html", html.ToString());
 				}
 				catch
 				{
-					// Evita blocchi se ci sono problemi di permessi di scrittura su Windows
+					// Salta senza bloccare in caso di problemi di permessi
 				}
 			}
 			// =========================================================================
