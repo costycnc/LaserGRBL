@@ -7,14 +7,17 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019 # Usiamo Windows 2019 che include nativamente i vecchi .NET Framework
 
     steps:
     - name: Scarica il codice sorgente
       uses: actions/checkout@v4
 
-    - name: Configura l'ambiente .NET e MSBuild
+    - name: Configura MSBuild
       uses: microsoft/setup-msbuild@v2
+
+    - name: Configura NuGet più recente
+      uses: NuGet/setup-nuget@v2
 
     - name: Ripristina i pacchetti NuGet
       run: nuget restore LaserGRBL.sln
