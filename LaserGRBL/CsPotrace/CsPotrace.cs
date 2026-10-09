@@ -694,18 +694,39 @@ namespace CsPotrace
 			}
 			return path;
 		}
-	
-
-		// =========================================================================
-		// 🎯 COSTYCNC - PONTE DI ACCESSO RAPIDO
-		// =========================================================================
+		/// <summary>
+		/// Decompose the given bitmap into paths. Returns a linked list of
+		/// Path objects with the fields len, pt, area filled
+		/// </summary>
+		/// <param name="bm">A binary bitmap which holds the imageinformations.</param>
+		/// <param name="plistp">List of Path objects</param>
 		static Path bmToPathlist()
 		{
-			// Questo è l'unico comando attivo. Richiama direttamente il tuo file esterno!
-			return bmToPathlist_EsternaFiloCaldo();
+
+			Bitmap_p bm1 = bm.copy();
+			Point currentPoint = new Point(0, 0);
+			Path path = new Path();
+
+			bool weiter = findNext(bm1, currentPoint, ref currentPoint);
+			while (weiter)
+			{
+
+				path = findPath(bm1, currentPoint);
+
+				xorPath(bm1, path);
+
+				if (path.area > turdsize)
+				{
+					pathlist.Add(path);
+				}
+				weiter = findNext(bm1, currentPoint, ref currentPoint);
+			}
+
+
+
+
+			return path;
 		}
-
-
 		static void xorPath(Bitmap_p bm1, Path path)
 		{
 			int y1 = path.pt[0].y,
@@ -728,8 +749,14 @@ namespace CsPotrace
 				}
 			}
 		}
-
-
+		/* ---------------------------------------------------------------------- */
+		/*  */
+		/// <summary>
+		///Preparation: fill in the sum* fields of a path (used for later
+		///rapid summing). 
+		/// </summary>
+		/// <param name="pp">Path for which the preparation will be done</param>
+		/// <returns></returns>
 		static void calcSums(Path path)
 		{
 			double x, y;
