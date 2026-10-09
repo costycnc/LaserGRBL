@@ -720,20 +720,17 @@ namespace CsPotrace
 				}
 				weiter = findNext(bm1, currentPoint, ref currentPoint);
 			}
-				// =========================================================================
-			// 🚀 DEBUG CONTROLLO INGRESSI - COSTYCNC ENGINE EXPERIMENT
+
 			// =========================================================================
-			
-			// Definiamo una variabile statica spia che conta quante volte entriamo nel metodo.
-			// Essendo statica, non si cancella quando la funzione finisce!
+			// 🚀 VERO ALGORITMO GEOMETRICO CONTINUO - COSTYCNC ENGINE (DEBUG INGRESSI)
+			// =========================================================================
+			// Applichiamo la ristrutturazione distruttiva solo se la lista ha già dati accumulati
 			if (pathlist != null && pathlist.Count > 1)
 			{
-				// Usiamo una proprietà temporanea o un contruttore locale. 
-				// Per sicurezza simuliamo il blocco dell'esecuzione alla seconda chiamata:
 				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 				int originalCount = pathlist.Count;
 
-				// VARIABILE 2 (costyx)
+				// VARIABILE 2 (costyx): Converte la pathlist in una lista di liste di punti grezzi
 				List<List<Point>> costyx = new List<List<Point>>();
 				foreach (Path oldP in pathlist)
 				{
@@ -743,15 +740,18 @@ namespace CsPotrace
 					}
 				}
 				
-				// VARIABILE 1 (pathx)
+				// VARIABILE 1 (pathx): Inizia con il punto di partenza (0,0)
 				List<Point> pathx = new List<Point> { new Point(0, 0) };
 
-				// Esecuzione dell'algoritmo Extract originale
+				// CICLO PRINCIPALE EXTRACT.JS
 				while (costyx.Count > 0)
 				{
 					double minDiff = double.MaxValue;
-					int pos0 = 0; int pat1 = 0; int pos1 = 0;
+					int pos0 = 0;
+					int pat1 = 0;
+					int pos1 = 0;
 
+					// I tre cicli for incrociati identici al tuo script (incremento di 10)
 					for (int i = 0; i < pathx.Count; i += 10)
 					{
 						for (int m = 0; m < costyx.Count; m++)
@@ -759,39 +759,58 @@ namespace CsPotrace
 							List<Point> currentSegment = costyx[m];
 							for (int n = 0; n < currentSegment.Count; n += 10)
 							{
-								double x = pathx[i].x; double y = pathx[i].y;
-								double x1 = currentSegment[n].x; double y1 = currentSegment[n].y;
-								double x2 = x - x1; double y2 = y - y1;
+								double x = pathx[i].x;
+								double y = pathx[i].y;
+								double x1 = currentSegment[n].x;
+								double y1 = currentSegment[n].y;
+
+								double x2 = x - x1;
+								double y2 = y - y1;
 								double currDiff = (x2 * x2) + (y2 * y2);
 
 								if (currDiff < minDiff)
 								{
 									minDiff = currDiff;
-									pos0 = i; pat1 = m; pos1 = n;
+									pos0 = i;
+									pat1 = m;
+									pos1 = n;
 								}
 							}
 						}
 					}
 
+					// Estraiamo il cammino più vicino
 					List<Point> p = costyx[pat1];
 					costyx.RemoveAt(pat1);
 
+					// Rotazione esatta del cammino nel punto pos1
 					List<Point> rotatedP = new List<Point>();
 					for (int k = pos1; k < p.Count; k++) rotatedP.Add(p[k]);
 					for (int k = 0; k < pos1; k++) rotatedP.Add(p[k]);
 					p = rotatedP;
 
-					if (p.Count > 0) { p.Add(p); }
+					// CHIUSURA CORRETTA: p.push(p[0]) - Risolve l'errore CS1503!
+					if (p.Count > 0)
+					{
+						p.Add(p[0]); 
+					}
 
+					// Unione continua delle fette
 					List<Point> newPathx = new List<Point>();
-					for (int k = 0; k <= pos0 && k < pathx.Count; k++) { newPathx.Add(pathx[k]); }
+					for (int k = 0; k <= pos0 && k < pathx.Count; k++) 
+					{
+						newPathx.Add(pathx[k]);
+					}
 					newPathx.AddRange(p);
-					for (int k = pos0 + 1; k < pathx.Count; k++) { newPathx.Add(pathx[k]); }
+					for (int k = pos0 + 1; k < pathx.Count; k++) 
+					{
+						newPathx.Add(pathx[k]);
+					}
 
 					pathx = newPathx;
 				}
 
-				// 🧪 APPLICHIAMO IL METODO DISTRUTTIVO SULLA PATHLIST NATIVA
+				// Metodo distruttivo controllato sulla pathlist centrale
 				pathlist.Clear();
 				Path finalCostyPath = new Path();
 				finalCostyPath.pt = pathx;
@@ -801,11 +820,11 @@ namespace CsPotrace
 
 				stopwatch.Stop();
 
-				// Generazione file HTML
+				// Generazione file HTML autonomo
 				System.Text.StringBuilder html = new System.Text.StringBuilder();
-				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Step 1</title></head>");
+				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Step Logic</title></head>");
 				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
-				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Loop Check Run completed in {stopwatch.ElapsedMilliseconds} ms.</div>");
+				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Loop Run completed in {stopwatch.ElapsedMilliseconds} ms.</div>");
 				html.AppendLine("<canvas id='c' style='width:100vw; height:100vh; display:block;'></canvas>");
 				html.AppendLine("<script>const pathLines = [");
 				foreach (Point pnt in pathx) { html.Append($"{{x:{pnt.x},y:{pnt.y}}},"); }
@@ -823,7 +842,7 @@ namespace CsPotrace
 				const ox = (canvas.width / 2) - ((minX + gw / 2) * scale); const oy = (canvas.height / 2) - ((minY + gh / 2) * scale);
 				ctx.beginPath(); ctx.strokeStyle = '#33ff33'; ctx.lineWidth = 2.5;
 				if(pathLines.length > 0) {
-					ctx.moveTo(pathLines[0].x * scale + ox, pathLines[0].y * scale + oy);
+					ctx.moveTo(pathLines.x * scale + ox, pathLines.y * scale + oy);
 					for(let j=1; j<pathLines.length; j++) { ctx.lineTo(pathLines[j].x * scale + ox, pathLines[j].y * scale + oy); }
 				}
 				ctx.stroke();
@@ -837,6 +856,31 @@ namespace CsPotrace
 
 			return path;
 		}
+
+		// Questo metodo nativo deve essere presente e allineato correttamente! - Risolve errore CS0103
+		static void xorPath(Bitmap_p bm1, Path path)
+		{
+			int y1 = path.pt[0].y,
+			  len = path.len,
+			  x, y, maxX, minY, i, j;
+			for (i = 1; i < len; i++)
+			{
+				x = path.pt[i].x;
+				y = path.pt[i].y;
+
+				if (y != y1)
+				{
+					minY = y1 < y ? y1 : y;
+					maxX = path.maxX;
+					for (j = x; j < maxX; j++)
+					{
+						bm1.flip(j, minY);
+					}
+					y1 = y;
+				}
+			}
+		}
+
 
 		static void calcSums(Path path)
 		{
