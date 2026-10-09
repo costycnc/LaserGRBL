@@ -793,15 +793,38 @@ namespace CsPotrace
 					currentAnchor = rotatedPoints[rotatedPoints.Count - 1];
 				}
 
-// ⏱️ FERMA IL CRONOMETRO E MOSTRA UNA FINESTRA POP-UP CLICCABILE
-stopwatch.Stop();
-System.Windows.Forms.MessageBox.Show(
-    $"[CostyCNC Optimizer]\n\nOptimization successful!\nReordered {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.", 
-    "CostyCNC Debug Info", 
-    System.Windows.Forms.MessageBoxButtons.OK, 
-    System.Windows.Forms.MessageBoxIcon.Information
-);
 
+				// ⏱️ FERMA IL CRONOMETRO
+				stopwatch.Stop();
+
+				// 1. Prepariamo il testo iniziale con Data, Ora, percorsi e millisecondi
+				System.Text.StringBuilder sb = new System.Text.StringBuilder();
+				sb.AppendLine($"{DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")} - [CostyCNC] Optimized {originalCount} paths in {stopwatch.ElapsedMilliseconds} ms.");
+				sb.AppendLine("--- COORDINATE DEI PERCORSI OTTIMIZZATI ---");
+
+				// 2. Cicliamo la pathlist per estrarre tutti i punti geometrici reali X e Y
+				for (int m = 0; m < pathlist.Count; m++)
+				{
+					sb.AppendLine($"Cammino n. {m + 1} (Totale punti: {pathlist[m].pt.Count})");
+					
+					// Estraiamo le coordinate pixel di ogni singolo punto del cammino
+					foreach (Point pnt in pathlist[m].pt)
+					{
+						sb.AppendLine($"X: {pnt.x}, Y: {pnt.y}");
+					}
+					sb.AppendLine("---------------------------------------");
+				}
+				sb.AppendLine("\r\n"); // Riga vuota di separazione per il prossimo lavoro
+
+				try
+				{
+					// Salva tutto il blocco di testo e coordinate nel file costycnc_log.txt
+					System.IO.File.AppendAllText("costycnc_log.txt", sb.ToString());
+				}
+				catch
+				{
+					// Evita blocchi se ci sono problemi di permessi di scrittura su Windows
+				}
 			}
 			// =========================================================================
 			// 🚀 END COSTYCNC GEOMETRIC INTERCEPTION ALGORITHM
@@ -809,6 +832,7 @@ System.Windows.Forms.MessageBox.Show(
 
 			return path;
 		}
+
 
 		
 		static void xorPath(Bitmap_p bm1, Path path)
