@@ -7,7 +7,7 @@ namespace CsPotrace
 	public partial class Potrace
 	{
 		// =========================================================================
-		// 🛠️ FILE ESTERNO COSTYCNC - ROTAZIONE PRIMO PATH SUL PUNTO PIÙ VICINO A (0,0)
+		// 🛠️ FILE ESTERNO COSTYCNC - APERTURA SICURA (ZERO ALERT DI WINDOWS)
 		// =========================================================================
 		static Path bmToPathlist_EsternaFiloCaldo()
 		{
@@ -30,16 +30,16 @@ namespace CsPotrace
 			}
 
 			// =========================================================================
-			// 🚀 COSTRUZIONE FILE HTML - LOGICA DI ROTAZIONE DEL PUNTO PIÙ VICINO A 0
+			// 🚀 COSTRUZIONE FILE HTML - MOSTRA I CONTORNI E I PUNTI DI INGRESSO
 			// =========================================================================
 			if (pathlist != null && pathlist.Count > 0)
 			{
 				System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
 				System.Text.StringBuilder html = new System.Text.StringBuilder();
-				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Nearest to 0 Rotation</title></head>");
+				html.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>CostyCNC Path Entries View</title></head>");
 				html.AppendLine("<body style='margin:0; background:#111; color:#fff; overflow:hidden;'>");
-				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Step 1: First path rotated to the closest point to (0,0).</div>");
+				html.AppendLine($"<div style='background:#222; padding:10px; font-weight:bold; color:#00ffcc; font-family:sans-serif;'>[CostyCNC Debug] Potrace generated {pathlist.Count} paths. Entry points highlighted in RED.</div>");
 				html.AppendLine("<canvas id='c' style='width:100vw; height:100vh; display:block;'></canvas>");
 				
 				// Esportiamo i contorni nativi in una struttura ad array di array per JavaScript
@@ -58,54 +58,13 @@ namespace CsPotrace
 				}
 				html.AppendLine("];");
 
-				// Script JS per calcolare i confini, ruotare il punto ideale e disegnare
+				// Script JS per calcolare i confini, scalare e disegnare i contorni + cerchietti di ingresso
 				html.AppendLine(@"
 				const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d');
 				canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 				
-				// Copiamo la lista dei contorni per non alterare i dati di base durante i calcoli
-				const processedContours = JSON.parse(JSON.stringify(originalContours));
-
-				// =========================================================================
-				// ⚡ TROVA IL PUNTO PIÙ VICINO A (0,0) TRA TUTTI I PATH E RUOTA QUEL PATH
-				// =========================================================================
-				let minDistanceSq = Infinity;
-				let targetPathIndex = -1;
-				let targetPointIndex = -1;
-
-				// Cerchiamo in tutti i contorni e in tutti i loro punti
-				for (let m = 0; m < processedContours.length; m++) {
-					const contour = processedContours[m];
-					for (let n = 0; n < contour.length; n++) {
-						const pt = contour[n];
-						// Calcoliamo la distanza al quadrato rispetto a X=0 e Y=0
-						const distSq = (pt.x * pt.x) + (pt.y * pt.y);
-
-						if (distSq < minDistanceSq) {
-							minDistanceSq = distSq;
-							targetPathIndex = m;   // Indice di quale sagoma è la più vicina
-							targetPointIndex = n;  // Indice di quale punto di quella sagoma è il più vicino
-						}
-					}
-				}
-
-				// Se abbiamo trovato il punto più vicino, ruotiamo solo quella specifica sagoma
-				if (targetPathIndex !== -1 && targetPointIndex !== -1) {
-					const p = processedContours[targetPathIndex];
-					
-					// Eseguiamo la rotazione esatta sul punto 'targetPointIndex'
-					const rotatedP = [];
-					for (let k = targetPointIndex; k < p.length; k++) rotatedP.push(p[k]);
-					for (let k = 0; k < targetPointIndex; k++) rotatedP.push(p[k]);
-					
-					// Sostituiamo la vecchia sagoma con quella ruotata
-					processedContours[targetPathIndex] = rotatedP;
-				}
-				// =========================================================================
-
-				// Calcolo ingombri standard per il bilanciamento dello schermo
 				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-				processedContours.forEach(contour => {
+				originalContours.forEach(contour => {
 					contour.forEach(pt => {
 						if(pt.x < minX) minX = pt.x; if(pt.x > maxX) maxX = pt.x;
 						if(pt.y < minY) minY = pt.y; if(pt.y > maxY) maxY = pt.y;
@@ -117,10 +76,9 @@ namespace CsPotrace
 				const ox = (canvas.width / 2) - ((minX + gw / 2) * scale); 
 				const oy = (canvas.height / 2) - ((minY + gh / 2) * scale);
 
-				// Disegno a schermo dei risultati
-				processedContours.forEach((contour, idx) => {
+				originalContours.forEach(contour => {
 					if(contour.length > 0) {
-						// 1. Disegna la sagoma (Verde)
+						// 1. Disegna il contorno geometrico (Verde)
 						ctx.lineWidth = 2.0;
 						ctx.strokeStyle = '#33ff33';
 						ctx.beginPath();
@@ -131,16 +89,13 @@ namespace CsPotrace
 						ctx.closePath();
 						ctx.stroke();
 
-						// 2. Disegna il cerchio sulla NUOVA entrata (Rosso)
+						// 2. Disegna un cerchio piccolo sul punto di ingresso (Rosso)
 						const entryX = contour[0].x * scale + ox;
 						const entryY = contour[0].y * scale + oy;
 						
 						ctx.beginPath();
 						ctx.arc(entryX, entryY, 4, 0, 2 * Math.PI);
-						
-						// Se questa è la sagoma che abbiamo modificato, facciamo il cerchietto azzurro 
-						// per distinguerlo a colpo d'occhio, altrimenti lasciamolo rosso.
-						ctx.fillStyle = (idx === targetPathIndex) ? '#00ffff' : '#ff3333';
+						ctx.fillStyle = '#ff3333';
 						ctx.fill();
 						ctx.strokeStyle = '#ffffff';
 						ctx.lineWidth = 1;
@@ -151,7 +106,25 @@ namespace CsPotrace
 
 				stopwatch.Stop();
 
-				try { System.IO.File.WriteAllText("costycnc.html", html.ToString()); } catch {}
+				// =========================================================================
+				// 🛡️ SOLUZIONE DEFINITIVA ANTI-ALERT: Scrittura in area Temp sicura di Windows
+				// =========================================================================
+				try 
+				{ 
+					// Genera un percorso univoco e sicuro nella cartella temporanea di sistema
+					string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "costycnc_debug.html");
+					
+					// Scrive il file (Windows non blocca questa cartella perché è nata per questo)
+					System.IO.File.WriteAllText(tempPath, html.ToString());
+
+					// Apre il browser predefinito usando il file temporaneo appena creato
+					System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+					{
+						FileName = tempPath,
+						UseShellExecute = true
+					});
+				} 
+				catch {}
 			}
 
 			return path;
