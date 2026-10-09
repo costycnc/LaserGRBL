@@ -13,22 +13,17 @@ jobs:
     - name: Scarica il codice sorgente
       uses: actions/checkout@v4
 
-    - name: Configura il setup di MSBuild per vecchi .NET
+    - name: Configura MSBuild
       uses: microsoft/setup-msbuild@v2
 
     - name: Configura NuGet
       uses: NuGet/setup-nuget@v2
 
-    - name: Installa i Developer Pack per .NET storici
-      run: |
-        choco install netfx-4.7.2-devpack -y
-        choco install netfx-3.5 -y
-
     - name: Ripristina i pacchetti NuGet
       run: nuget restore LaserGRBL.sln
 
-    - name: Compila la soluzione completa
-      run: msbuild LaserGRBL.sln /p:Configuration=Release /p:Platform="Any CPU"
+    - name: Compila solo l'eseguibile principale
+      run: msbuild LaserGRBL/LaserGRBL.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
     - name: Salva e rendi scaricabile il file EXE compilato
       uses: actions/upload-artifact@v4
