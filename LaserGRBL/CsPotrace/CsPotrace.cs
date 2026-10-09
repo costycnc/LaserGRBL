@@ -1748,7 +1748,14 @@ namespace CsPotrace
 			Potrace.pathlist.Clear();
 
 		}
+		
+				public static List<List<Curve>> PotraceTrace(Bitmap Bitmap)
+		{
+			// 🚀 DEVIAZIONE COSTYCNC: Spedisce LaserGRBL direttamente nel tuo file esterno pulito!
+			return PotraceTraceFiloCaldo(Bitmap);
+		}
 
+/*
 		public static List<List<Curve>> PotraceTrace(Bitmap Bitmap)
 		{
 			Clear();
@@ -1771,7 +1778,7 @@ namespace CsPotrace
 			List<List<Curve>> rv = new List<List<Curve>>();
 			tracetoList(rv);
 			return rv;
-		}
+		}*/
 		#endregion
 		#region create svg
 		static string toString(double value)
