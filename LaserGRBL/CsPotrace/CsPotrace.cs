@@ -694,7 +694,7 @@ namespace CsPotrace
 			}
 			return path;
 		}
-			/// <summary>
+			/* <summary>
 		/// Decompose the given bitmap into paths. Returns a linked list of
 		/// Path objects with the fields len, pt, area filled
 		/// Optimized via Continuous Euclidean Nearest-Neighbor Tracking - CostyCNC Edition
@@ -856,8 +856,43 @@ namespace CsPotrace
 
 			return path;
 		}
+		*/
 
-		// Questo metodo nativo deve essere presente e allineato correttamente! - Risolve errore CS0103
+
+
+				/// <summary>
+		/// Decompose the given bitmap into paths. Returns a linked list of
+		/// Path objects with the fields len, pt, area filled
+		/// </summary>
+		/// <param name="bm">A binary bitmap which holds the imageinformations.</param>
+		/// <param name="plistp">List of Path objects</param>
+		static Path bmToPathlist()
+		{
+
+			Bitmap_p bm1 = bm.copy();
+			Point currentPoint = new Point(0, 0);
+			Path path = new Path();
+
+			bool weiter = findNext(bm1, currentPoint, ref currentPoint);
+			while (weiter)
+			{
+
+				path = findPath(bm1, currentPoint);
+
+				xorPath(bm1, path);
+
+				if (path.area > turdsize)
+				{
+					pathlist.Add(path);
+				}
+				weiter = findNext(bm1, currentPoint, ref currentPoint);
+			}
+
+
+
+
+			return path;
+		}
 		static void xorPath(Bitmap_p bm1, Path path)
 		{
 			int y1 = path.pt[0].y,
